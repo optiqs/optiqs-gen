@@ -11,38 +11,33 @@ const checker = program.getTypeChecker()
 const genLens = (destinationType: string, originType: string, prop: string) => {
   const value = `const get${toTitleCase(
     destinationType
-  )} = Lens.fromProp<${originType}>()('${prop}')`
+  )}From${originType} = Lens.fromProp<${originType}>()('${prop}')`
   console.log(value)
   return value
 }
 
-const getPropType = (decl: ts.Declaration) => {
+const getPropTypeNode = (decl: ts.Declaration) => {
   if (ts.isPropertySignature(decl) && decl.type) {
     const declType = decl.type
     if (ts.isArrayTypeNode(declType)) {
       const elemType = declType.elementType
-      return elemType.getText()
+      return elemType
     } else {
-      return declType.getText()
+      return declType
     }
+  } else {
+    return undefined
+  }
+}
+
+const getPropName = (decl: ts.Declaration) => {
+  if (ts.isPropertySignature(decl) && decl.type) {
+    return decl.name.getText()
   } else {
     return ''
   }
 }
 
-const getPropName = (decl: ts.Declaration) => {
-  return decl.getChildAt(0).getText()
-}
-
-/**
- * Currently the traversal goes through each interface in each file,
- * which works for generating bare lenses but not compositions
- * 
- * Ideally the traversal would occur top to bottom, allowing us
- * to easily compute the composition, but that does not seem to
- * work across multiple files. Alternatively, traversing bottom up
- * seems to work even across file boundaries.
- */
 const _visit = (symbol: ts.Symbol) => {
   if (symbol === undefined) {
     return
@@ -51,10 +46,17 @@ const _visit = (symbol: ts.Symbol) => {
   if (members === undefined) {
     return
   }
-  members.forEach(({ valueDeclaration }) => {
-    const propName = getPropName(valueDeclaration)
-    const propType = getPropType(valueDeclaration)
-    genLens(propType, symbol.name, propName)
+  members.forEach(({valueDeclaration}) => {
+    if (ts.isPropertySignature(valueDeclaration) && valueDeclaration.type) {
+      genLens(getPropName(valueDeclaration), symbol.name, getPropName(valueDeclaration))
+      const typeNode = getPropTypeNode(valueDeclaration)
+      if (typeNode && ts.isTypeNode(typeNode)) {
+        const type = checker.getTypeFromTypeNode(typeNode)
+        if (type.symbol) {
+          _visit(type.symbol)
+        }
+      }
+    }
   })
 }
 
@@ -66,7 +68,10 @@ const visit = (node: ts.Node) => {
   if (symbol === undefined) {
     return
   }
-  _visit(symbol)
+  if (symbol.name === 'A') {
+    console.log('** Lens Generation **')
+    _visit(symbol)
+  }
 }
 
 for (const sourceFile of program.getSourceFiles()) {
@@ -74,23 +79,3 @@ for (const sourceFile of program.getSourceFiles()) {
     ts.forEachChild(sourceFile, visit)
   }
 }
-
-/* Traversal
-
-  To traverse top to bottom (A -> ... -> S) the following can be used
-  Currently it doesn't work across file boundaries, so if you have files
-  a.ts which imports b.ts, it will not see the symbols on b.ts
-
-  An alternative is to traverse bottom to top, which appears to work
-  when using node.parent
-
-*/
-
-// const firstChild = elemType.getChildAt(0)
-// const f = elemType.getSourceFile()
-// if (firstChild) {
-//   const declaration = checker.getSymbolAtLocation(firstChild)
-//   if (declaration) {
-//     _visit(declaration)
-//   }
-// }

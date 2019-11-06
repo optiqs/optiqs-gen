@@ -1,9 +1,9 @@
 import {C} from './other'
 
 export interface B {
-  cs: C[]
+  c: C
 }
 
 export interface A {
-  bs: B[]
+  b: B
 }
