@@ -1,17 +1,16 @@
-# ts-state-to-lens
+# lens-generator
 
-A minimal experiment to try generating Lenses from a State declaration.
+Generate lens declarations for a type definition.
 
-## Usage
-
-Feed it any file with a `State` interface declaration.
-
-```bash
-$ npm start -- [file-to-parse]
-```
-
-## Example
+## Usage Example
 
 ```bash
 $ npm start -- src/state.ts
 ```
+
+## Roadmap
+
+- Generate composite lenses
+- Handle different type constructors
+- Allow for decorated type definitions with specific behavior
+- Generate intermediate, simplified tree from ast
