@@ -1,3 +1,3 @@
-export interface C {
+export interface Potato {
     name: string
 }

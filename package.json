@@ -1,8 +1,8 @@
 {
-  "name": "ts-state-to-lens",
+  "name": "lenses-generator",
   "private": true,
   "version": "1.0.0",
-  "description": "A minimal experiment for generating Lenses from a State declaration",
+  "description": "Optics library for lenses generation",
   "scripts": {
     "start": "ts-node src/main.ts"
   },

@@ -1,9 +1,9 @@
-import {C} from './other'
+import {Potato} from './other'
 
-export interface B {
-  c: C
+export interface Curry {
+  potato: Potato
 }
 
 export interface A {
-  b: B
+  curry: Curry
 }

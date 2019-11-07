@@ -10,7 +10,7 @@ $ npm start -- src/state.ts
 
 ## Roadmap
 
-- Generate composite lenses
-- Handle different type constructors
-- Allow for decorated type definitions with specific behavior
-- Generate intermediate, simplified tree from ast
+- [] Generate composite lenses
+- [] Handle different type constructors
+- [] Allow for decorated type definitions with specific behavior
+- [x] Generate intermediate, simplified tree from ast
