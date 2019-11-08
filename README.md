@@ -5,7 +5,7 @@ Generate lens declarations for a type definition.
 ## Usage Example
 
 ```bash
-$ npm start -- src/state.ts
+$ npm start -- examples/basic/state.ts
 ```
 
 ## Roadmap
@@ -13,4 +13,4 @@ $ npm start -- src/state.ts
 - [ ] Generate composite lenses
 - [ ] Handle different type constructors
 - [ ] Allow for decorated type definitions with specific behavior
-- [x] Generate intermediate, simplified tree from ast
+- [x] Generate intermediate, simplified tree from AST
