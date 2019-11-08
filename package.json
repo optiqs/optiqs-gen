@@ -5,12 +5,19 @@
   "description": "Optics library for lenses generation",
   "main": "src/lib.ts",
   "scripts": {
-    "start": "ts-node src/cli.ts"
+    "start": "ts-node src/cli.ts",
+    "test": "jest",
+    "test-watch": "npm test -- --watch"
   },
   "license": "MIT",
   "dependencies": {
     "@types/node": "^12.11.7",
     "ts-node": "^8.4.1",
     "typescript": "^3.6.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.22",
+    "jest": "^24.9.0",
+    "ts-jest": "^24.1.0"
   }
 }

@@ -8,13 +8,28 @@ export interface LensNode {
   readonly children?: LensNode[]
 }
 
-const toTitleCase = (s: string) => s[0].toUpperCase() + s.slice(1)
+/**
+ * Convert a string to TitleCase
+ * @param s String to convert
+ */
+const toTitleCase = (s: string) => {
+  const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
+  return camelCase[0].toUpperCase() + camelCase.slice(1)
+}
+
+/**
+ * Create an identifier for a lens
+ * @param originType Type the prop comes from
+ * @param prop Prop to access
+ */
+export const createLensIdentifier = (originType: string, prop: string) =>
+  `get${toTitleCase(prop)}From${toTitleCase(originType)}`
 
 export const genLens = (originType: string, prop: string) => {
-  const value = `const get${toTitleCase(
+  const value = `const ${createLensIdentifier(
+    originType,
     prop
-  )}From${originType} = Lens.fromProp<${originType}>()('${prop}')`
-  console.log(value)
+  )} = Lens.fromProp<${originType}>()('${prop}')`
   return value
 }
 
