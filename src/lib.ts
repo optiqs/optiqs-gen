@@ -1,11 +1,18 @@
 import ts from 'typescript'
-import {buildTree, genLens} from './lens'
+import {buildTree, genLens, LensNode} from './lens'
+import {Tree} from './tree'
+
+export interface GeneratorOutput {
+  fileName: string
+  statements: string[]
+  tree: Tree<LensNode>
+}
 
 const main = (program: ts.Program, rootTypeName: string) => {
   const checker = program.getTypeChecker()
-  const generatedStatements: string[] = []
+  const output: GeneratorOutput[] = []
 
-  const visit = (node: ts.Node) => {
+  const visit = (node: ts.Node, fileName: string) => {
     if (!ts.isInterfaceDeclaration(node)) {
       return
     }
@@ -15,20 +22,27 @@ const main = (program: ts.Program, rootTypeName: string) => {
     }
     if (symbol.name === rootTypeName) {
       const tree = buildTree(checker, symbol)
+      const statements: string[] = []
       tree.treeTraverseBF(node => {
         if (node.id === symbol.name) return
-        generatedStatements.push(genLens(node.parentId, node.propName))
+        statements.push(genLens(node.parentId, node.propName))
+      })
+
+      output.push({
+        fileName,
+        statements,
+        tree
       })
     }
   }
 
   for (const sourceFile of program.getSourceFiles()) {
     if (!sourceFile.isDeclarationFile) {
-      ts.forEachChild(sourceFile, visit)
+      ts.forEachChild(sourceFile, node => visit(node, sourceFile.fileName))
     }
   }
 
-  return generatedStatements
+  return output
 }
 
 /**
