@@ -4,6 +4,6 @@ export interface Curry {
   potato: Potato
 }
 
-export interface A {
+export interface State {
   curry: Curry
 }
