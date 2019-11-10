@@ -33,6 +33,17 @@ export const genLens = (originType: string, prop: string) => {
   return value
 }
 
+export const genCompositions = (rootTypeName: string, list: string[], ) => {
+  const composed = list.reduce((prev, curr) => {
+    if (!prev) return curr
+    return `${prev}.compose(${curr})`
+  }, '')
+  const composedSplit = list[list.length - 1].split(/(?=[A-Z])/)
+  const name = composedSplit[1]
+  const value = `const select${name}From${rootTypeName} = ${composed}`
+  return value
+}
+
 export const getPropTypeNode = (decl: ts.Declaration) => {
   if (ts.isPropertySignature(decl) && decl.type) {
     const declType = decl.type
