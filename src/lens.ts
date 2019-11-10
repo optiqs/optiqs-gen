@@ -33,7 +33,7 @@ export const genLens = (originType: string, prop: string) => {
   return value
 }
 
-export const genCompositions = (rootTypeName: string, list: string[], ) => {
+export const genCompositions = (rootTypeName: string, list: string[]) => {
   const composed = list.reduce((prev, curr) => {
     if (!prev) return curr
     return `${prev}.compose(${curr})`
