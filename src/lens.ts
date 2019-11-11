@@ -1,8 +1,10 @@
 import ts from 'typescript'
 import {Tree} from './tree'
+import {isArrayTypeNode, getArrayTypeParameters} from './type-nodes'
 
 export interface LensNode {
   readonly id: string
+  readonly kind: 'lens' | 'traversal' | 'fold'
   readonly propName: string
   readonly parentId: string
   readonly children?: LensNode[]
@@ -33,29 +35,18 @@ export const genLens = (originType: string, prop: string) => {
   return value
 }
 
-export const genCompositions = (rootTypeName: string, list: string[], ) => {
-  const composed = list.reduce((prev, curr) => {
-    if (!prev) return curr
-    return `${prev}.compose(${curr})`
-  }, '')
-  const composedSplit = list[list.length - 1].split(/(?=[A-Z])/)
-  const name = composedSplit[1]
-  const value = `const select${name}From${rootTypeName} = ${composed}`
-  return value
-}
-
-export const getPropTypeNode = (decl: ts.Declaration) => {
-  if (ts.isPropertySignature(decl) && decl.type) {
-    const declType = decl.type
-    if (ts.isArrayTypeNode(declType)) {
-      const elemType = declType.elementType
-      return elemType
-    } else {
-      return declType
+export const genCompositions = (rootTypeName: string, path: LensNode[]) => {
+  const composed = path.reduce<string>((prev, curr) => {
+    const currValue = createLensIdentifier(curr.parentId, curr.propName)
+    if (curr.kind === 'traversal') {
+      return `${currValue}.composeTraversal(${curr.id.toLowerCase()}Traversal)`
     }
-  } else {
-    return undefined
-  }
+    if (!prev) return currValue
+    return `${prev}.composeLens(${currValue})`
+  }, '')
+  const propName = path.map(p => p.propName)[path.length - 1].split(/(?=[A-Z])/)[0]
+  const value = `const select${toTitleCase(propName)}From${rootTypeName} = ${composed}`
+  return value
 }
 
 export const getPropName = (decl: ts.Declaration) => {
@@ -75,6 +66,7 @@ export const buildTree = (
     existingTree ||
     new Tree<LensNode>({
       propName: '-',
+      kind: 'lens',
       id: symbol.name,
       parentId: '-',
       children: []
@@ -87,17 +79,36 @@ export const buildTree = (
     return tree
   }
   members.forEach(({valueDeclaration}) => {
-    if (ts.isPropertySignature(valueDeclaration) && valueDeclaration.type) {
-      tree.addChild(
-        {
-          id: getPropTypeNode(valueDeclaration)!.getText(),
-          propName: getPropName(valueDeclaration),
-          parentId: symbol.name
-        },
-        symbol.name
-      )
-      const typeNode = getPropTypeNode(valueDeclaration)
-      if (typeNode && ts.isTypeNode(typeNode)) {
+    if (valueDeclaration && ts.isPropertySignature(valueDeclaration) && valueDeclaration.type) {
+      const typeNode = valueDeclaration.type
+      if (!typeNode || !ts.isTypeNode(typeNode)) return
+      if (isArrayTypeNode(typeNode)) {
+        const params = getArrayTypeParameters(typeNode)
+        if (params) {
+          tree.addChild(
+            {
+              id: params[0].getText(),
+              kind: 'traversal',
+              propName: getPropName(valueDeclaration),
+              parentId: symbol.name
+            },
+            symbol.name
+          )
+          const type = checker.getTypeFromTypeNode(params[0])
+          if (type.symbol) {
+            buildTree(checker, type.symbol, tree)
+          }
+        }
+      } else {
+        tree.addChild(
+          {
+            id: typeNode.getText(),
+            kind: 'lens',
+            propName: getPropName(valueDeclaration),
+            parentId: symbol.name
+          },
+          symbol.name
+        )
         const type = checker.getTypeFromTypeNode(typeNode)
         if (type.symbol) {
           buildTree(checker, type.symbol, tree)

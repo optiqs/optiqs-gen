@@ -25,13 +25,17 @@ const main = (program: ts.Program, rootTypeName: string) => {
       const statements: string[] = []
       tree.traverseBF(node => {
         if (node.id === symbol.name) return
-        statements.push(genLens(node.parentId, node.propName))
+        if (node.kind === 'traversal') {
+          statements.push(genLens(node.parentId, node.propName))
+          statements.push(`const ${node.id.toLowerCase()}Traversal = fromTraversable(array)<${node.id}>()`)
+        } else {
+          statements.push(genLens(node.parentId, node.propName))
+        }
       })
       tree.traversePaths(
-        list => {
-          statements.push(genCompositions(rootTypeName, list))
+        path => {
+          statements.push(genCompositions(rootTypeName, path))
         },
-        node => createLensIdentifier(node.parentId, node.propName)
       )
 
       output.push({
