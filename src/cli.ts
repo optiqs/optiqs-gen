@@ -1,3 +1,4 @@
+import {writeFileSync} from 'fs'
 import yargs from 'yargs'
 import {fromFiles} from './lib'
 
@@ -6,6 +7,11 @@ const argv = yargs
     alias: 't',
     default: 'State',
     describe: 'The root state type name'
+  })
+  .option('output', {
+    alias: 'o',
+    describe: 'File to write output to. Defaults to stdout',
+    default: ''
   })
   .boolean('tree')
   .describe('tree', 'Print the generated tree instead of the code')
@@ -16,11 +22,17 @@ const argv = yargs
   }).argv
 
 const fileResults = fromFiles(yargs.argv._, argv.type)
-fileResults.forEach(({fileName, statements, tree}) => {
-  console.log('File name:', fileName)
+fileResults.forEach(({statements, tree}) => {
+  let result = ''
   if (argv.tree) {
-    console.log(JSON.stringify(tree, null, 2))
+    result = JSON.stringify(tree, null, 2)
   } else {
-    statements.forEach(statement => console.log(statement))
+    result = statements.join('\n')
+  }
+
+  if (argv.output) {
+    writeFileSync(argv.output, result)
+  } else {
+    console.log(result)
   }
 })
