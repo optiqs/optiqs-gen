@@ -2,6 +2,11 @@ import ts from 'typescript'
 import {Tree} from './tree'
 import {isArrayTypeNode, getArrayTypeParameters} from './type-nodes'
 
+const toTitleCase = (s: string) => {
+  const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
+  return camelCase[0].toUpperCase() + camelCase.slice(1)
+}
+
 export interface LensNode {
   readonly id: string
   readonly kind: 'lens' | 'traversal' | 'fold'
@@ -10,111 +15,117 @@ export interface LensNode {
   readonly children?: LensNode[]
 }
 
-/**
- * Convert a string to TitleCase
- * @param s String to convert
- */
-const toTitleCase = (s: string) => {
-  const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
-  return camelCase[0].toUpperCase() + camelCase.slice(1)
-}
+export class Lenses {
+  private _root: ts.Symbol
+  private _tree: Tree<LensNode>
+  private _checker: ts.TypeChecker
 
-/**
- * Create an identifier for a lens
- * @param originType Type the prop comes from
- * @param prop Prop to access
- */
-export const createLensIdentifier = (originType: string, prop: string) =>
-  `get${toTitleCase(prop)}From${toTitleCase(originType)}`
-
-export const genLens = (originType: string, prop: string) => {
-  const value = `const ${createLensIdentifier(
-    originType,
-    prop
-  )} = Lens.fromProp<${originType}>()('${prop}')`
-  return value
-}
-
-export const genCompositions = (rootTypeName: string, path: LensNode[]) => {
-  const composed = path.reduce<string>((prev, curr) => {
-    const currValue = createLensIdentifier(curr.parentId, curr.propName)
-    if (curr.kind === 'traversal') {
-      return `${currValue}.composeTraversal(${curr.id.toLowerCase()}Traversal)`
-    }
-    if (!prev) return currValue
-    return `${prev}.composeLens(${currValue})`
-  }, '')
-  const propName = path.map(p => p.propName)[path.length - 1].split(/(?=[A-Z])/)[0]
-  const value = `const select${toTitleCase(propName)}From${rootTypeName} = ${composed}`
-  return value
-}
-
-export const getPropName = (decl: ts.Declaration) => {
-  if (ts.isPropertySignature(decl) && decl.type) {
-    return decl.name.getText()
-  } else {
-    return ''
-  }
-}
-
-export const buildTree = (
-  checker: ts.TypeChecker,
-  symbol: ts.Symbol,
-  existingTree?: Tree<LensNode>
-): Tree<LensNode> => {
-  const tree =
-    existingTree ||
-    new Tree<LensNode>({
+  constructor(rootNode: ts.Symbol, checker: ts.TypeChecker) {
+    this._root = rootNode
+    this._tree = new Tree<LensNode>({
       propName: '-',
       kind: 'lens',
-      id: symbol.name,
+      id: rootNode.name,
       parentId: '-',
       children: []
     })
-  if (symbol === undefined) {
-    return tree
+    this._checker = checker
+    this.buildTree(rootNode)
   }
-  const members = symbol.members
-  if (members === undefined) {
-    return tree
+
+  getTree() {
+    return this._tree
   }
-  members.forEach(({valueDeclaration}) => {
-    if (valueDeclaration && ts.isPropertySignature(valueDeclaration) && valueDeclaration.type) {
-      const typeNode = valueDeclaration.type
-      if (!typeNode || !ts.isTypeNode(typeNode)) return
-      if (isArrayTypeNode(typeNode)) {
-        const params = getArrayTypeParameters(typeNode)
-        if (params) {
-          tree.addChild(
-            {
-              id: params[0].getText(),
-              kind: 'traversal',
-              propName: getPropName(valueDeclaration),
-              parentId: symbol.name
-            },
-            symbol.name
-          )
-          const type = checker.getTypeFromTypeNode(params[0])
-          if (type.symbol) {
-            buildTree(checker, type.symbol, tree)
-          }
+
+  static createLensIdentifier(originType: string, prop: string) {
+    return `get${toTitleCase(prop)}From${toTitleCase(originType)}`
+  }
+
+  static genLens(originType: string, prop: string) {
+    const value = `const ${Lenses.createLensIdentifier(
+      originType,
+      prop
+    )} = Lens.fromProp<${originType}>()('${prop}')`
+    return value
+  }
+
+  static genTraversal(traversalId: string) {
+    const value = `const ${traversalId.toLowerCase()}Traversal = fromTraversable(array)<${traversalId}>()`
+    return value
+  }
+
+  static genCompositions(rootTypeName: string, path: LensNode[]) {
+    const composed = path.reduce<string>((prev, curr) => {
+      const currValue = Lenses.createLensIdentifier(curr.parentId, curr.propName)
+      if (curr.kind === 'traversal') {
+        return `${currValue}.composeTraversal(${curr.id.toLowerCase()}Traversal)`
+      }
+      if (!prev) return currValue
+      return `${prev}.composeLens(${currValue})`
+    }, '')
+    const propName = path.map(p => p.propName)[path.length - 1].split(/(?=[A-Z])/)[0]
+    const value = `const select${toTitleCase(propName)}From${rootTypeName} = ${composed}`
+    return value
+  }
+
+  getPropName(decl: ts.Declaration) {
+    if (ts.isPropertySignature(decl) && decl.type) {
+      return decl.name.getText()
+    } else {
+      return ''
+    }
+  }
+
+  private handleArray(node: ts.TypeNode, name: string, parent: ts.Symbol) {
+    if (isArrayTypeNode(node)) {
+      const params = getArrayTypeParameters(node)
+      if (params) {
+        this._tree.addChild(
+          {
+            id: params[0].getText(),
+            kind: 'traversal',
+            propName: name,
+            parentId: parent.name
+          },
+          parent.name
+        )
+        const type = this._checker.getTypeFromTypeNode(params[0])
+        if (type.symbol) {
+          this.buildTree(type.symbol)
         }
-      } else {
-        tree.addChild(
+      }
+    }
+  }
+
+  private buildTree(symbol: ts.Symbol = this._root): Tree<LensNode> {
+    if (symbol === undefined) {
+      return this._tree
+    }
+    const members = symbol.members
+    if (members === undefined) {
+      return this._tree
+    }
+    members.forEach(({valueDeclaration}) => {
+      if (valueDeclaration && ts.isPropertySignature(valueDeclaration) && valueDeclaration.type) {
+        const typeNode = valueDeclaration.type
+        const propName = this.getPropName(valueDeclaration)
+        if (!typeNode || !ts.isTypeNode(typeNode)) return
+        this.handleArray(typeNode, propName, symbol)
+        this._tree.addChild(
           {
             id: typeNode.getText(),
             kind: 'lens',
-            propName: getPropName(valueDeclaration),
+            propName: this.getPropName(valueDeclaration),
             parentId: symbol.name
           },
           symbol.name
         )
-        const type = checker.getTypeFromTypeNode(typeNode)
+        const type = this._checker.getTypeFromTypeNode(typeNode)
         if (type.symbol) {
-          buildTree(checker, type.symbol, tree)
+          this.buildTree(type.symbol)
         }
       }
-    }
-  })
-  return tree
+    })
+    return this._tree
+  }
 }
