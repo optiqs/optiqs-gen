@@ -1,6 +1,6 @@
 import ts from 'typescript'
 import {Tree} from './tree'
-import {isArrayTypeNode, getArrayTypeParameters} from './type-nodes'
+import {ArrayNode} from './type-nodes'
 
 const toTitleCase = (s: string) => {
   const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
@@ -76,27 +76,6 @@ export class Lenses {
     }
   }
 
-  private handleArray(node: ts.TypeNode, name: string, parent: ts.Symbol) {
-    if (isArrayTypeNode(node)) {
-      const params = getArrayTypeParameters(node)
-      if (params) {
-        this._tree.addChild(
-          {
-            id: params[0].getText(),
-            kind: 'traversal',
-            propName: name,
-            parentId: parent.name
-          },
-          parent.name
-        )
-        const type = this._checker.getTypeFromTypeNode(params[0])
-        if (type.symbol) {
-          this.buildTree(type.symbol)
-        }
-      }
-    }
-  }
-
   private buildTree(symbol: ts.Symbol = this._root): Tree<LensNode> {
     if (symbol === undefined) {
       return this._tree
@@ -110,19 +89,25 @@ export class Lenses {
         const typeNode = valueDeclaration.type
         const propName = this.getPropName(valueDeclaration)
         if (!typeNode || !ts.isTypeNode(typeNode)) return
-        this.handleArray(typeNode, propName, symbol)
-        this._tree.addChild(
-          {
-            id: typeNode.getText(),
-            kind: 'lens',
-            propName: this.getPropName(valueDeclaration),
-            parentId: symbol.name
-          },
-          symbol.name
-        )
-        const type = this._checker.getTypeFromTypeNode(typeNode)
-        if (type.symbol) {
-          this.buildTree(type.symbol)
+        if (ArrayNode.isArrayTypeNode(typeNode)) {
+          const arrayNode = new ArrayNode(this._checker)
+          const {typeSymbol, lensNode} = arrayNode.handle(typeNode, propName, symbol)
+          this._tree.addChild(lensNode, symbol.name)
+          this.buildTree(typeSymbol)
+        } else {
+          this._tree.addChild(
+            {
+              id: typeNode.getText(),
+              kind: 'lens',
+              propName: this.getPropName(valueDeclaration),
+              parentId: symbol.name
+            },
+            symbol.name
+          )
+          const type = this._checker.getTypeFromTypeNode(typeNode)
+          if (type.symbol) {
+            this.buildTree(type.symbol)
+          }
         }
       }
     })
