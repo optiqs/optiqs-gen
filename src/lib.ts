@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import {LensNode, Lenses} from './lens'
 import {Tree} from './tree'
+import {ArrayNode, RecordNode} from './type-nodes'
 
 export interface GeneratorOutput {
   fileName: string
@@ -21,7 +22,10 @@ const main = (program: ts.Program, rootTypeName: string) => {
       return
     }
     if (symbol.name === rootTypeName) {
-      const tree = new Lenses(symbol, checker).getTree()
+      const tree = new Lenses(symbol, checker, [
+        new ArrayNode(checker),
+        new RecordNode(checker)
+      ]).getTree()
       const statements: string[] = []
       tree.traverseBF(node => {
         if (node.id === symbol.name) return

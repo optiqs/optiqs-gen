@@ -1,12 +1,9 @@
 import ts from 'typescript'
 import {LensNode} from '../lens'
+import {TypeNode} from './type-node'
 
-interface NodeResult {
-  typeSymbol: ts.Symbol
-  lensNode: LensNode
-}
+export class ArrayNode implements TypeNode {
 
-export class ArrayNode {
   private _checker: ts.TypeChecker
 
   private getArrayTypeParameters(typeNode: ts.ArrayTypeNode | ts.TypeReferenceNode) {
@@ -19,7 +16,7 @@ export class ArrayNode {
     this._checker = checker
   }
 
-  static isArrayTypeNode(
+  isOfTypeNode(
     typeNode: ts.TypeNode
   ): typeNode is ts.ArrayTypeNode | ts.TypeReferenceNode {
     if (ts.isArrayTypeNode(typeNode)) return true
@@ -28,7 +25,7 @@ export class ArrayNode {
     else return false
   }
 
-  static getEquivalentLensNode(id: string, name: string, parentId: string): LensNode {
+  getEquivalentLensNode(id: string, name: string, parentId: string): LensNode {
     return {
       id,
       parentId,
@@ -37,8 +34,9 @@ export class ArrayNode {
     }
   }
 
-  getUnderlyingTypeSymbol(node: ts.ArrayTypeNode | ts.TypeReferenceNode) {
-    const params = this.getArrayTypeParameters(node)
+  getUnderlyingTypeSymbol(typeNode: ts.TypeNode) {
+    if (!this.isOfTypeNode(typeNode)) return undefined
+    const params = this.getArrayTypeParameters(typeNode)
     const type = this._checker.getTypeFromTypeNode(params![0])
     return type.symbol
   }

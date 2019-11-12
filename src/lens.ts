@@ -1,6 +1,6 @@
 import ts from 'typescript'
 import {Tree} from './tree'
-import {ArrayNode} from './type-nodes'
+import {TypeNode} from './type-nodes'
 
 const toTitleCase = (s: string) => {
   const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
@@ -19,9 +19,9 @@ export class Lenses {
   private _root: ts.Symbol
   private _tree: Tree<LensNode>
   private _checker: ts.TypeChecker
-  private _arrayHandler: ArrayNode
+  private _handlers: TypeNode[]
 
-  constructor(rootNode: ts.Symbol, checker: ts.TypeChecker) {
+  constructor(rootNode: ts.Symbol, checker: ts.TypeChecker, handlers: TypeNode[] = []) {
     this._root = rootNode
     this._tree = new Tree<LensNode>({
       propName: '-',
@@ -31,8 +31,12 @@ export class Lenses {
       children: []
     })
     this._checker = checker
-    this._arrayHandler = new ArrayNode(checker)
+    this._handlers = handlers
     this.buildTree(rootNode)
+  }
+
+  registerNodeHandler(handler: TypeNode) {
+    this._handlers.push(handler)
   }
 
   getTree() {
@@ -91,12 +95,17 @@ export class Lenses {
         const typeNode = valueDeclaration.type
         const propName = this.getPropName(valueDeclaration)
         if (!typeNode || !ts.isTypeNode(typeNode)) return
-        if (ArrayNode.isArrayTypeNode(typeNode)) {
-          const typeSymbol = this._arrayHandler.getUnderlyingTypeSymbol(typeNode)
-          const lensNode = ArrayNode.getEquivalentLensNode(typeSymbol.name, propName, symbol.name)
-          this._tree.addChild(lensNode, symbol.name)
-          this.buildTree(typeSymbol)
-        } else {
+        const handled = this._handlers.some(handler => {
+          if (handler.isOfTypeNode(typeNode)) {
+            const typeSymbol = handler.getUnderlyingTypeSymbol(typeNode)
+            if (!typeSymbol) return
+            const lensNode = handler.getEquivalentLensNode(typeSymbol.name, propName, symbol.name)
+            this._tree.addChild(lensNode, symbol.name)
+            this.buildTree(typeSymbol)
+            return true
+          }
+        })
+        if (!handled) {
           this._tree.addChild(
             {
               id: typeNode.getText(),
