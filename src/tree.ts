@@ -16,19 +16,18 @@ export class Tree<T extends {id: string; children?: T[]}> {
   }
 
   traversePaths(
-    listFn: (list: string[]) => void,
-    fn: (node: T) => string,
+    listFn: (list: T[]) => void,
     node: T = this.root,
-    list: string[] = []
+    path: T[] = []
   ) {
     if (node.id !== this.root.id)
-      list.push(fn(node))
+      path.push(node)
     if (node.children && node.children.length) {
-      node.children.forEach(child => this.traversePaths(listFn, fn, child, list))
+      node.children.forEach(child => this.traversePaths(listFn, child, path))
     }
     if (node.id !== this.root.id) {
-      listFn(list)
-      list.pop()
+      listFn(path)
+      path.pop()
     }
   }
 

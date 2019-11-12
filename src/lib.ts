@@ -1,5 +1,5 @@
 import ts from 'typescript'
-import {buildTree, genLens, LensNode, createLensIdentifier, genCompositions} from './lens'
+import {LensNode, Lenses} from './lens'
 import {Tree} from './tree'
 
 export interface GeneratorOutput {
@@ -21,18 +21,20 @@ const main = (program: ts.Program, rootTypeName: string) => {
       return
     }
     if (symbol.name === rootTypeName) {
-      const tree = buildTree(checker, symbol)
+      const tree = new Lenses(symbol, checker).getTree()
       const statements: string[] = []
       tree.traverseBF(node => {
         if (node.id === symbol.name) return
-        statements.push(genLens(node.parentId, node.propName))
+        if (node.kind === 'traversal') {
+          statements.push(Lenses.genLens(node.parentId, node.propName))
+          statements.push(Lenses.genTraversal(node.id))
+        } else {
+          statements.push(Lenses.genLens(node.parentId, node.propName))
+        }
       })
-      tree.traversePaths(
-        list => {
-          statements.push(genCompositions(rootTypeName, list))
-        },
-        node => createLensIdentifier(node.parentId, node.propName)
-      )
+      tree.traversePaths(path => {
+        statements.push(Lenses.genCompositions(rootTypeName, path))
+      })
 
       output.push({
         fileName,
