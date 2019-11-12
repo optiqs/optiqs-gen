@@ -19,6 +19,7 @@ export class Lenses {
   private _root: ts.Symbol
   private _tree: Tree<LensNode>
   private _checker: ts.TypeChecker
+  private _arrayHandler: ArrayNode
 
   constructor(rootNode: ts.Symbol, checker: ts.TypeChecker) {
     this._root = rootNode
@@ -30,6 +31,7 @@ export class Lenses {
       children: []
     })
     this._checker = checker
+    this._arrayHandler = new ArrayNode(checker)
     this.buildTree(rootNode)
   }
 
@@ -90,8 +92,8 @@ export class Lenses {
         const propName = this.getPropName(valueDeclaration)
         if (!typeNode || !ts.isTypeNode(typeNode)) return
         if (ArrayNode.isArrayTypeNode(typeNode)) {
-          const arrayNode = new ArrayNode(this._checker)
-          const {typeSymbol, lensNode} = arrayNode.handle(typeNode, propName, symbol)
+          const typeSymbol = this._arrayHandler.getUnderlyingTypeSymbol(typeNode)
+          const lensNode = ArrayNode.getEquivalentLensNode(typeSymbol.name, propName, symbol.name)
           this._tree.addChild(lensNode, symbol.name)
           this.buildTree(typeSymbol)
         } else {
