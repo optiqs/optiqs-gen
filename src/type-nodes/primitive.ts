@@ -1,6 +1,6 @@
 import ts from 'typescript'
 import {TypeNode, toTitleCase} from './type-node'
-import uuid from 'uuid'
+import uuid from 'uuid-random'
 
 export class PrimitiveNode implements TypeNode {
 
@@ -17,7 +17,7 @@ export class PrimitiveNode implements TypeNode {
   nodeDeclaration: string  
 
   constructor(checker: ts.TypeChecker, parent: TypeNode, valueDeclaration: ts.PropertySignature) {
-    this.id = uuid.v4()
+    this.id = uuid()
     this.parent = parent
     this._checker = checker
     this.valueDeclaration = valueDeclaration

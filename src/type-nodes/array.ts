@@ -1,6 +1,6 @@
 import ts from 'typescript'
 import {TypeNode, TypeNodeHandler, VerifiedDeclaration, toTitleCase} from './type-node'
-import uuid from 'uuid'
+import uuid from 'uuid-random'
 
 export abstract class ArrayNodeHandler extends TypeNodeHandler {
   static isOfTypeNode(
@@ -43,7 +43,7 @@ export class ArrayNode implements TypeNode {
   nodeDeclaration: string
 
   constructor(checker: ts.TypeChecker, parent: TypeNode, valueDeclaration: VerifiedDeclaration) {
-    this.id = uuid.v4()
+    this.id = uuid()
     this.parent = parent
     this._checker = checker
     this.valueDeclaration = valueDeclaration
