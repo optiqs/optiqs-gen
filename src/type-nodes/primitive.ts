@@ -1,10 +1,12 @@
 import ts from 'typescript'
 import {TypeNode, toTitleCase} from './type-node'
+import uuid from 'uuid'
 
 export class PrimitiveNode implements TypeNode {
 
   private _checker: ts.TypeChecker
   
+  id: string
   parent: TypeNode
   valueDeclaration: ts.PropertySignature
   typeNode: ts.TypeNode
@@ -15,6 +17,7 @@ export class PrimitiveNode implements TypeNode {
   nodeDeclaration: string  
 
   constructor(checker: ts.TypeChecker, parent: TypeNode, valueDeclaration: ts.PropertySignature) {
+    this.id = uuid.v4()
     this.parent = parent
     this._checker = checker
     this.valueDeclaration = valueDeclaration
@@ -23,15 +26,16 @@ export class PrimitiveNode implements TypeNode {
     this.typeSymbols = this.typeParameters
       .map(this._checker.getTypeFromTypeNode)
       .map(typ => typ.symbol)
-    console.log(this.typeSymbols)
     this.propertyName = valueDeclaration.name.getText()
     this.propertyTypeName = valueDeclaration.type!.getText()
     this.nodeDeclaration =
-      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} =
-            Lens.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')`
+      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = Lens.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')`
   }
 
   getComposition(value: string) {
-    return `${value}.composeLens(${this.propertyTypeName.toLowerCase()})`
+    if (!value) {
+      return `get${toTitleCase(this.propertyName)}From${this.parent.propertyTypeName}`
+    }
+    return `${value}.composeLens(get${toTitleCase(this.propertyName)}From${this.parent.propertyTypeName})`
   }
 }

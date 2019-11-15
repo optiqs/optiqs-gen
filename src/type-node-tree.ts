@@ -38,14 +38,14 @@ export class TypeNodeTree {
         const handled = this._handlers.some(handler => {
           if (handler.isDeclarationOfTypeNode(valueDeclaration)) {
             const createdNode = handler.createNode(this._checker, node, valueDeclaration)
-            this._tree.addChild(createdNode)
+            this._tree.addChild(createdNode, node.id)
             this.buildTree(createdNode)
             return true
           }
         })
         if (!handled) {
           const createdNode = new PrimitiveNode(this._checker, node, valueDeclaration)
-          this._tree.addChild(createdNode)
+          this._tree.addChild(createdNode, node.id)
           this.buildTree(createdNode)
         }
       }

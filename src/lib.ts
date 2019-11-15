@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import {TypeNodeTree} from './type-node-tree'
 import {Tree} from './tree'
-import {TypeNode, ArrayNodeHandler} from './type-nodes'
+import {TypeNode, ArrayNodeHandler, toTitleCase} from './type-nodes'
 import {RootNode} from './type-nodes/root'
 
 export interface GeneratorOutput {
@@ -34,8 +34,15 @@ const main = (program: ts.Program, rootTypeName: string) => {
     typeNodeTree.traverseBF(node => {
       statements.push(node.nodeDeclaration)
     })
+    statements.push('\n')
     typeNodeTree.traversePaths(path => {
-      // statements.push(Lenses.genCompositions(rootTypeName, path))
+      const composition = path.reduce((prev, curr) => {
+        return `${curr.getComposition(prev)}`
+      }, '')
+      const name = `const select${toTitleCase(
+        path[path.length - 1].propertyName
+      )}From${rootTypeName}`
+      statements.push(`${name} = ${composition}`)
     })
 
     output.push({

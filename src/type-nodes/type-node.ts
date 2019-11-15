@@ -15,6 +15,7 @@ export abstract class TypeNodeHandler {
 }
 
 export interface TypeNode {
+  id: string
   parent: TypeNode | undefined
   valueDeclaration: ts.PropertySignature | ts.InterfaceDeclaration
   typeNode: ts.TypeNode

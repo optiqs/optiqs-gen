@@ -7,20 +7,24 @@
   "scripts": {
     "start": "ts-node src/cli.ts",
     "test": "jest",
-    "test-watch": "npm test -- --watch"
+    "test-watch": "npm test -- --watch",
+    "check-updates": "ncu"
   },
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^12.11.7",
+    "@types/node": "^12.12.7",
     "@types/yargs": "^13.0.3",
-    "ts-node": "^8.4.1",
-    "typescript": "^3.6.4",
+    "ts-node": "^8.5.2",
+    "typescript": "^3.7.2",
+    "uuid": "^3.3.3",
     "yargs": "^14.2.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.22",
+    "@types/jest": "^24.0.23",
+    "@types/uuid": "^3.4.6",
     "husky": "^3.0.9",
     "jest": "^24.9.0",
+    "npm-check-updates": "^3.2.1",
     "ts-jest": "^24.1.0"
   },
   "husky": {

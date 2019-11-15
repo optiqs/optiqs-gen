@@ -3,6 +3,7 @@ import {TypeNode} from './type-node'
 
 export class RootNode implements TypeNode {
   
+  id: string
   parent: undefined
   valueDeclaration: ts.InterfaceDeclaration
   typeNode: ts.TypeNode
@@ -13,6 +14,7 @@ export class RootNode implements TypeNode {
   nodeDeclaration: string  
 
   constructor(typeNode: ts.TypeNode, interfaceDeclaration: ts.InterfaceDeclaration, symbol: ts.Symbol) {
+    this.id = 'root'
     this.typeNode = typeNode
     this.typeParameters = ts.createNodeArray([])
     this.typeSymbols = [symbol]
