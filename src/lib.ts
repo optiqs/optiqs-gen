@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import {TypeNodeTree} from './type-node-tree'
 import {Tree} from './tree'
-import {TypeNode, ArrayNodeHandler, toTitleCase} from './type-nodes'
+import {TypeNode, ArrayNodeHandler, toTitleCase, RecordNodeHandler} from './type-nodes'
 import {RootNode} from './type-nodes/root'
 
 export interface GeneratorOutput {
@@ -29,7 +29,7 @@ const main = (program: ts.Program, rootTypeName: string) => {
     if (!typeNode) return
 
     const rootNode: TypeNode = new RootNode(typeNode, node, symbol)
-    const typeNodeTree = new TypeNodeTree(rootNode, checker, [ArrayNodeHandler]).getTree()
+    const typeNodeTree = new TypeNodeTree(rootNode, checker, [ArrayNodeHandler, RecordNodeHandler]).getTree()
     const statements: string[] = []
     typeNodeTree.traverseBF(node => {
       statements.push(node.nodeDeclaration)
