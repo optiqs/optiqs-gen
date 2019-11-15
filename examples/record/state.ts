@@ -14,7 +14,6 @@ export interface C {
 }
 
 export interface State {
-    a: A
-    b: B[]
-    // c: Array<C>
+    // a: A
+    b: Record<B['id'], B>
 }

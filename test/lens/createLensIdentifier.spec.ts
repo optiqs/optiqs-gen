@@ -1,4 +1,4 @@
-import {createLensIdentifier} from '../../src/lens'
+import {createLensIdentifier} from '../../src/type-node-tree'
 
 test('create getXFromY', () => {
   expect(createLensIdentifier('Y', 'X')).toBe('getXFromY')
