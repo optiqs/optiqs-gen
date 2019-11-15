@@ -1,6 +1,6 @@
 import ts from 'typescript'
 import {Tree} from './tree'
-import {TypeNode, TypeNodeHandler, toTitleCase} from './type-nodes'
+import {TypeNode, TypeNodeHandler} from './type-nodes'
 import {PrimitiveNode} from './type-nodes/primitive'
 
 export class TypeNodeTree {
@@ -23,31 +23,6 @@ export class TypeNodeTree {
 
   getTree() {
     return this._tree
-  }
-
-  static createLensIdentifier(originType: string, prop: string) {
-    return `get${toTitleCase(prop)}From${toTitleCase(originType)}`
-  }
-
-  static genLens(originType: string, prop: string) {
-    const value = `const ${TypeNodeTree.createLensIdentifier(
-      originType,
-      prop
-    )} = Lens.fromProp<${originType}>()('${prop}')`
-    return value
-  }
-
-  static genRecordLens(originType: string, prop: string, idField = 'id') {
-    const value = `const ${TypeNodeTree.createLensIdentifier(
-      originType,
-      prop
-    )} = Lens.fromProp<Record<${originType}['${idField}'], ${originType}>>()`
-    return value
-  }
-
-  static genTraversal(traversalId: string) {
-    const value = `const ${traversalId.toLowerCase()}Traversal = fromTraversable(array)<${traversalId}>()`
-    return value
   }
 
   private buildTree(node: TypeNode = this._root): Tree<TypeNode> {
