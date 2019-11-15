@@ -29,34 +29,20 @@ const main = (program: ts.Program, rootTypeName: string) => {
     if (!typeNode) return
 
     const rootNode: TypeNode = new RootNode(typeNode, node, symbol)
-    const typeNodeTree = new TypeNodeTree(rootNode, checker, [ArrayNodeHandler])
-    console.log(typeNodeTree.getTree())
+    const typeNodeTree = new TypeNodeTree(rootNode, checker, [ArrayNodeHandler]).getTree()
+    const statements: string[] = []
+    typeNodeTree.traverseBF(node => {
+      statements.push(node.nodeDeclaration)
+    })
+    typeNodeTree.traversePaths(path => {
+      // statements.push(Lenses.genCompositions(rootTypeName, path))
+    })
 
-    // if (symbol.name === rootTypeName) {
-    //   const tree = new Lenses().getTree()
-    //   const statements: string[] = []
-    //   tree.traverseBF(node => {
-    //     if (node.id === symbol.name) return
-    //     if (node.kind === 'traversal') {
-    //       statements.push(Lenses.genLens(node.parentId, node.propName))
-    //       statements.push(Lenses.genTraversal(node.id))
-    //     } else if (node.kind === 'record') {
-    //       statements.push(Lenses.genLens(node.parentId, node.propName))
-    //       statements.push(Lenses.genRecordLens(node.id, `ById`))
-    //     } else {
-    //       statements.push(Lenses.genLens(node.parentId, node.propName))
-    //     }
-    //   })
-    //   tree.traversePaths(path => {
-    //     statements.push(Lenses.genCompositions(rootTypeName, path))
-    //   })
-
-    //   output.push({
-    //     fileName,
-    //     statements,
-    //     tree
-    //   })
-    // }
+    output.push({
+      fileName,
+      statements,
+      tree: typeNodeTree
+    })
   }
 
   for (const sourceFile of program.getSourceFiles()) {

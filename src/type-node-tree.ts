@@ -1,11 +1,7 @@
 import ts from 'typescript'
 import {Tree} from './tree'
-import {TypeNode, TypeNodeHandler} from './type-nodes'
-
-const toTitleCase = (s: string) => {
-  const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
-  return camelCase[0].toUpperCase() + camelCase.slice(1)
-}
+import {TypeNode, TypeNodeHandler, toTitleCase} from './type-nodes'
+import {PrimitiveNode} from './type-nodes/primitive'
 
 export class TypeNodeTree {
   private _root: TypeNode
@@ -54,27 +50,11 @@ export class TypeNodeTree {
     return value
   }
 
-  // static genCompositions(rootTypeName: string, path: LensNode[]) {
-  //   const composed = path.reduce<string>((prev, curr) => {
-  //     const currValue = TypeNodeTree.createLensIdentifier(curr.parentId, curr.propName)
-  //     if (curr.kind === 'traversal') {
-  //       return `${currValue}.composeTraversal(${curr.id.toLowerCase()}Traversal)`
-  //     } else if (curr.kind === 'record') {
-  //       return `${currValue}.compose(getByIdFrom${curr.id})`
-  //     }
-  //     if (!prev) return currValue
-  //     return `${prev}.composeLens(${currValue})`
-  //   }, '')
-  //   const propName = path.map(p => p.propName)[path.length - 1].split(/(?=[A-Z])/)[0]
-  //   const value = `const select${toTitleCase(propName)}From${rootTypeName} = ${composed}`
-  //   return value
-  // }
-
   private buildTree(node: TypeNode = this._root): Tree<TypeNode> {
     if (node.typeSymbols.length === 0) {
       return this._tree
     }
-    const members = node.typeSymbols[0].members
+    const members = node.typeSymbols[0] ? node.typeSymbols[0].members : undefined
     if (members === undefined) {
       return this._tree
     }
@@ -89,18 +69,9 @@ export class TypeNodeTree {
           }
         })
         if (!handled) {
-          // this._tree.addChild(
-          //   {
-          //     id: typeNode.getText(),
-          //     propName: this.getPropName(valueDeclaration),
-          //     parentId: symbol.name
-          //   },
-          //   symbol.name
-          // )
-          // const typ = this._checker.getTypeFromTypeNode(typeNode)
-          // if (typ.symbol) {
-          //   this.buildTree(typ.symbol)
-          // }
+          const createdNode = new PrimitiveNode(this._checker, node, valueDeclaration)
+          this._tree.addChild(createdNode)
+          this.buildTree(createdNode)
         }
       }
     })

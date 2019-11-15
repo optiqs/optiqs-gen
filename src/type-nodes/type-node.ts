@@ -25,3 +25,8 @@ export interface TypeNode {
   nodeDeclaration: string
   getComposition: (value: string) => string
 }
+
+export const toTitleCase = (s: string) => {
+  const camelCase = s.replace(/-([a-z])/g, matches => matches[1].toUpperCase())
+  return camelCase[0].toUpperCase() + camelCase.slice(1)
+}
