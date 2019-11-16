@@ -16,4 +16,7 @@ export interface C {
 export interface State {
     a: A
     b: Record<B['id'], B>
+    c: {
+        [id: string]: C
+    }
 }

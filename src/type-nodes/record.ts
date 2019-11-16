@@ -5,9 +5,14 @@ import uuid from 'uuid-random'
 export abstract class RecordNodeHandler extends TypeNodeHandler {
   static isOfTypeNode(
     typeNode: ts.TypeNode | undefined
-  ): typeNode is ts.TypeReferenceNode {
+  ): typeNode is ts.TypeReferenceNode | ts.TypeLiteralNode {
     if (!typeNode) return false
     else if (ts.isTypeReferenceNode(typeNode) && typeNode.typeName.getText() === 'Record')
+      return true
+    else if (
+      ts.isTypeLiteralNode(typeNode) &&
+      (typeNode as any).nextContainer.type.typeName.escapedText
+    )
       return true
     else return false
   }
@@ -34,7 +39,7 @@ export class RecordNode implements TypeNode {
   id: string
   parent: TypeNode
   valueDeclaration: VerifiedDeclaration
-  typeNode: ts.TypeReferenceNode
+  typeNode: ts.TypeReferenceNode | ts.TypeLiteralNode
   typeParameters: ts.NodeArray<ts.TypeNode>
   typeSymbols: ts.Symbol[]
   propertyName: string
@@ -46,20 +51,50 @@ export class RecordNode implements TypeNode {
     this.parent = parent
     this._checker = checker
     this.valueDeclaration = valueDeclaration
-    this.typeNode = valueDeclaration.type as ts.TypeReferenceNode
-    this.typeParameters = this.typeNode.typeArguments!
+    this.typeNode = valueDeclaration.type as ts.TypeReferenceNode | ts.TypeLiteralNode
+    if (ts.isTypeLiteralNode(this.typeNode)) {
+      const typeParameters: ts.TypeNode[] = []
+      this.typeNode.members.forEach(member => {
+        member.forEachChild(child => {
+          const typ = checker.getTypeAtLocation(child)
+          const typeNode = checker.typeToTypeNode(typ)
+          if (typeNode) {
+            typeParameters.push(typeNode)
+          }
+        })
+      })
+      this.typeParameters = ts.createNodeArray(typeParameters)
+    } else {
+      this.typeParameters = this.typeNode.typeArguments!
+    }
     this.typeSymbols = this.typeParameters
-      .map(this._checker.getTypeFromTypeNode)
-      .filter(typ => typ.isClassOrInterface())
+      .filter(ts.isTypeNode)
+      .map(node => {
+        const typ = this._checker.getTypeFromTypeNode(node)
+        if (typ && typ.symbol) {
+          return typ
+        }
+        return ((node as any).typeName)
+          ? (node as any).typeName
+          : {}
+      })
+      .filter(typ => !!typ.symbol)
       .map(typ => typ.symbol)
+    console.log(this.typeSymbols)
     this.propertyName = valueDeclaration.name.getText()
     this.propertyTypeName = this.typeSymbols[0].name
     this.nodeDeclaration =
-      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = Lens.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')\n` +
-      `const getByIdFrom${toTitleCase(this.propertyTypeName)} = Lens.fromProp<Record<string, ${this.propertyTypeName}>>()`
+      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = Lens.fromProp<${
+        parent.propertyTypeName
+      }>()('${this.propertyName}')\n` +
+      `const getByIdFrom${toTitleCase(this.propertyTypeName)} = Lens.fromProp<Record<string, ${
+        this.propertyTypeName
+      }>>()`
   }
 
   getComposition(value: string) {
-    return `get${toTitleCase(this.propertyName)}From${this.parent.propertyTypeName}.composeLens(getByIdFrom${toTitleCase(this.propertyName)})`
+    return `get${toTitleCase(this.propertyName)}From${
+      this.parent.propertyTypeName
+    }.composeLens(getByIdFrom${toTitleCase(this.propertyName)})`
   }
 }
