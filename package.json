@@ -1,8 +1,8 @@
 {
-  "name": "lenses-generator",
+  "name": "optics-gen",
   "private": true,
   "version": "1.0.0",
-  "description": "Optics library for lenses generation",
+  "description": "Library for optics generation",
   "main": "src/lib.ts",
   "scripts": {
     "start": "ts-node src/cli.ts",
