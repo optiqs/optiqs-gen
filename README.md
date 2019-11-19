@@ -1,6 +1,6 @@
-# lens-generator
+# optics-gen
 
-Generate lens declarations for a type definition.
+Generate optics declarations for a type definition.
 
 ## Usage Example
 
@@ -10,7 +10,7 @@ $ npm start -- examples/basic/state.ts
 
 ## Roadmap
 
-- [ ] Generate composite lenses
-- [ ] Handle different type constructors
+- [x] Generate composite lenses
+- [x] Handle different type constructors
 - [ ] Allow for decorated type definitions with specific behavior
 - [x] Generate intermediate, simplified tree from AST
