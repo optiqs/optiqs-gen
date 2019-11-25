@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import {TypeNode, TypeNodeHandler, VerifiedDeclaration, toTitleCase} from './type-node'
 import uuid from 'uuid-random'
+import {useImport} from '../imports'
 
 export abstract class RecordNodeHandler extends TypeNodeHandler {
   static isOfTypeNode(
@@ -74,9 +75,7 @@ export class RecordNode implements TypeNode {
         if (typ && typ.symbol) {
           return typ
         }
-        return ((node as any).typeName)
-          ? (node as any).typeName
-          : {}
+        return (node as any).typeName ? (node as any).typeName : {}
       })
       .filter(typ => !!typ.symbol)
       .map(typ => typ.symbol)
@@ -84,12 +83,14 @@ export class RecordNode implements TypeNode {
     this.propertyName = valueDeclaration.name.getText()
     this.propertyTypeName = this.typeSymbols[0].name
     this.nodeDeclaration =
-      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = Lens.fromProp<${
-        parent.propertyTypeName
-      }>()('${this.propertyName}')\n` +
-      `const getByIdFrom${toTitleCase(this.propertyTypeName)} = Lens.fromProp<Record<string, ${
-        this.propertyTypeName
-      }>>()`
+      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = ${useImport(
+        'Lens',
+        'monocle-ts'
+      )}.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')\n` +
+      `const getByIdFrom${toTitleCase(this.propertyTypeName)} = ${useImport(
+        'Lens',
+        'monocle-ts'
+      )}.fromProp<Record<string, ${this.propertyTypeName}>>()`
   }
 
   getComposition(value: string) {
