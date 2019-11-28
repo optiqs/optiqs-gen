@@ -1,6 +1,7 @@
 import ts from 'typescript'
 import {TypeNode, TypeNodeHandler, VerifiedDeclaration, toTitleCase} from './type-node'
 import uuid from 'uuid-random'
+import {useImport} from '../imports'
 
 export abstract class ArrayNodeHandler extends TypeNodeHandler {
   static isOfTypeNode(
@@ -59,11 +60,19 @@ export class ArrayNode implements TypeNode {
     this.propertyName = valueDeclaration.name.getText()
     this.propertyTypeName = this.typeSymbols[0].name
     this.nodeDeclaration =
-      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = Lens.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')\n` +
-      `const ${this.propertyTypeName.toLowerCase()}Traversal = fromTraversable(array)<${this.propertyTypeName}>()`
+      `const get${toTitleCase(this.propertyName)}From${parent.propertyTypeName} = ${useImport(
+        'Lens',
+        'monocle-ts'
+      )}.fromProp<${parent.propertyTypeName}>()('${this.propertyName}')\n` +
+      `const ${this.propertyTypeName.toLowerCase()}Traversal = ${useImport(
+        'fromTraversable',
+        'monocle-ts'
+      )}(${useImport('array', 'fp-ts/lib/Array')})<${this.propertyTypeName}>()`
   }
 
   getComposition(value: string) {
-    return `get${toTitleCase(this.propertyName)}From${this.parent.propertyTypeName}.composeTraversal(${this.propertyName.toLowerCase()}Traversal)`
+    return `get${toTitleCase(this.propertyName)}From${
+      this.parent.propertyTypeName
+    }.composeTraversal(${this.propertyName.toLowerCase()}Traversal)`
   }
 }
